@@ -9,7 +9,9 @@ const favoriteRouter = express.Router();
 
 favoriteRouter
   .route("/")
+
   .options(cors.corsWithOptions, (req, res) => res.sendStatus(200))
+
   .get(cors.cors, authenticate.verifyUser, (req, res, next) => {
     Favorite.find({ user: req.user._id })
       .populate("user")
@@ -49,31 +51,33 @@ favoriteRouter
             res.json(favorite);
           });
         } else {
-          Favorite.create({ user: req.user._id });
-          req.body.forEach((campsiteId) => {
-            Campsite.exists({ _id: campsiteId }, (err, result) => {
-              if (result === true) {
-                if (favorite.campsite.includes(campsiteId._id) === false) {
-                  console.log(`New favorite added: Campsite ${campsiteId._id}`);
-                  favorite.campsite.push(campsiteId._id);
-                } else {
-                  console.log(
-                    `Campsite ${campsiteId._id} is already a favorite`
-                  );
-                }
-              } else {
-                console.log(`Campsite ${campsiteId._id} does not exist`);
-              }
-            });
-          });
-          favorite
-            .save()
+          Favorite.create({ user: req.user._id })
             .then((favorite) => {
-              favorite.save();
-              console.log("Favorites document created");
-              res.statusCode = 200;
-              res.setHeader("Content-Type", "application/json");
-              res.json(favorite);
+              req.body.forEach((campsiteId) => {
+                Campsite.exists({ _id: campsiteId }, (err, result) => {
+                  if (result === true) {
+                    if (favorite.campsite.includes(campsiteId._id) === false) {
+                      console.log(
+                        `New favorite added: Campsite ${campsiteId._id}`
+                      );
+                      favorite.campsite.push(campsiteId._id);
+                    } else {
+                      console.log(
+                        `Campsite ${campsiteId._id} is already a favorite`
+                      );
+                    }
+                  } else {
+                    console.log(`Campsite ${campsiteId._id} does not exist`);
+                  }
+                });
+              });
+              favorite.save().then((favorite) => {
+                favorite.save();
+                console.log("Favorites document updated");
+                res.statusCode = 200;
+                res.setHeader("Content-Type", "application/json");
+                res.json(favorite);
+              });
             })
             .catch((err) => next(err));
         }
@@ -100,7 +104,9 @@ favoriteRouter
 
 favoriteRouter
   .route("/:campsiteId")
+
   .options(cors.corsWithOptions, (req, res) => res.sendStatus(200))
+
   .get(cors.cors, (req, res, next) => {
     res.statusCode = 403;
     res.end(
